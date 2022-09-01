@@ -8,7 +8,7 @@
 </head>
 
 <body>
-    <canvas id="mycanvas" width="750" height="650" style="border: 1px solid black; ">
+    <canvas id="mycanvas" width="1000" height="650" style="border: 1px solid black; ">
         Hola tu navegador no funciona
     </canvas>
     
@@ -24,8 +24,15 @@
 
         var player = null;
         var bomba = null;
+        var explosiones = [];
         var itemBomba = false;
         var explosion = false;
+        var tiempoBomba = 0;
+        var contacto = false;
+        
+        var timer = 0;
+        var segundos = 0;
+        var minutos = 0;
 
         var imgPlayer = new Image();
         var imgPasto = new Image();
@@ -35,10 +42,8 @@
         var imgExplosion =  new Image();
 
         var audioJuego = new Audio("Tema.mp3");
-        var audioBomba = new Audio("Bomba.mp3");
         var audioExplosion = new Audio("Explosion.mp3");
         var audioGanar = new Audio("Ganar.mp3");
-        var audioPerder = new Audio("Perder.mp3");
 
         var pasto = [];
         var arbol = [];
@@ -59,14 +64,13 @@
             ['1','0','0','0','2','0','0','2','0','0','0','2','0','2','1'], //12
             ['1','1','1','1','1','1','1','1','1','1','1','1','1','1','1']  //13
         ];
-        console.log(mapa);
 
         function run(){
             cv = document.getElementById('mycanvas');
             ctx = cv.getContext('2d');
             
             player = new Cuadro(60,60,28,28,"red");
-            bomba = new Cuadro(60,60,28,28,"black");
+            bomba = new Cuadro(0,0,50,50,"black");
 
             for (let i = 0; i < 15; i++) {
                 for (let j = 0; j < 13; j++) {
@@ -84,7 +88,8 @@
             imgArbol.src = "arbol.png";
             imgArbusto.src = "arbusto.png";
             imgBomba.src = "pokeball.png";
-            imgExplosion.src = "explosion.png"
+            imgExplosion.src = "explosion.png";
+            audioJuego.volume = 0.5;
             
             paint(); 
         }
@@ -92,6 +97,21 @@
         //PAINT() - DIBUJA TODOS LOS ELEMENTOS EN EL CANVAS
         function paint() {
             window.requestAnimationFrame(paint);
+
+            //TIMER Y CONTROLES
+            ctx.fillStyle = "rgba(79, 135, 112,0.3)";
+            ctx.fillRect(700,0,900,650);
+            ctx.fillStyle = "white";
+            ctx.font = "30px Arial";
+            ctx.fillText("Timer:  "+minutos+":"+segundos, 800,50);
+            ctx.fillText("Controles", 800,150);
+            ctx.font = "20px Arial";
+            ctx.fillText("Arriba: Arrow Up / W", 765,200);
+            ctx.fillText("Abajo: Arrow Down / S", 765,250);
+            ctx.fillText("Derecha: Arrow Right / D", 765,300);
+            ctx.fillText("Izquierda: Arrow Left / A", 765,350);
+            ctx.fillText("Bomba: Space", 765,400);
+            ctx.fillText("Pausa: P", 765,450);
 
             //PINTAR FONDO (PASTO)
             for (let i = 0; i < pasto.length; i++) {
@@ -108,10 +128,40 @@
                 ctx.drawImage(imgArbusto,arbusto[i].x,arbusto[i].y,50,50);
             }
 
-            //SCORE
-            /*ctx.fillStyle = "black";
-            ctx.fillText("SCORE:"+score,10,20);*/
-             
+            //PINTAR Y EXPLOTAR BOMBA
+            if(itemBomba==true){
+                ctx.drawImage(imgBomba,bomba.x,bomba.y, 50, 50);
+                tiempoBomba++;
+                if(tiempoBomba >= 160){
+                    itemBomba = false; 
+                    explosion = true;
+                    explosiones.push(new Cuadro(bomba.x, bomba.y, 40, 40, "orange"));    //CENTRO
+                    explosiones.push(new Cuadro(bomba.x, bomba.y-50, 40, 40, "orange")); //ARRIBA
+                    explosiones.push(new Cuadro(bomba.x+50, bomba.y, 40, 40, "orange")); //DERECHA
+                    explosiones.push(new Cuadro(bomba.x-50, bomba.y, 40, 40, "orange")); //IZQUIERDA
+                    explosiones.push(new Cuadro(bomba.x, bomba.y+50, 40, 40, "orange")); //ABAJO
+                }  
+            }
+            if(explosion==true){
+                tiempoBomba++;
+                for (let i = 0; i < explosiones.length; i++) {
+                    ctx.drawImage(imgExplosion, explosiones[i].x, explosiones[i].y, 50, 50); 
+                    for (let j = 0; j < arbusto.length; j++) {
+                        if (explosiones[i].se_tocan(arbusto[j])) {
+                            arbusto[j].x = -50;
+                            arbusto[j].y = -50;
+                            score++;
+                            contacto = true;
+                        }
+                    }
+                }
+                if (tiempoBomba == 200) {
+                    explosion = false;
+                    explosiones = [];
+                    tiempoBomba = 0;
+                } 
+            }
+
             //PINTAR PLAYER
             ctx.drawImage(imgPlayer,player.x,player.y);
 
@@ -127,7 +177,16 @@
                 ctx.fillStyle = "white";
                 ctx.font = "30px Arial";
                 ctx.fillText("Presiona ENTER para iniciar",180,320);
-            }else{
+            }else if(score >= 34){
+                audioJuego.pause();
+                audioGanar.play();
+                ctx.fillStyle = "rgba(0,0,0,0.3)";
+                ctx.fillRect(0,0,750,650);
+                ctx.fillStyle = "white";
+                ctx.font = "30px Arial";
+                ctx.fillText("¡H A S  G A N A D O!",220,320);
+                clearInterval(timer);
+            }else {
                 update();
             }
         }
@@ -185,11 +244,6 @@
                     if (direccion=='right') {
                         player.x -= speed;
                     }
-                    /*player2.x = getRandomInt(500);
-                    player2.y = getRandomInt(500);
-
-                    score+=10;
-                    sound1.play();*/
                 }
             }
             
@@ -253,48 +307,60 @@
         document,addEventListener('keydown', function(e){
             //console.log(e);
             
-            //Arriba
+            //INICIAR JUEGO - Enter (13)
+            if (e.keyCode == 13) {
+                if(iniciar){
+                    iniciar = false;
+                    iniciarTimer();
+                    audioJuego.play();
+                }   
+            }
+
+            //Arriba ( 87 / 38 )
             if (e.keyCode == 87 || e.keyCode == 38) {
                 direccion = 'up';
                 imgPlayer.src = "playerBack.png";
             }
-            //Abajo
+            //Abajo ( 83 / 40 )
             if (e.keyCode == 83 || e.keyCode == 40) {
                 direccion = 'down';
                 imgPlayer.src = "playerFront.png";
             }
-            //Izquierda
+            //Izquierda ( 65 / 37 )
             if (e.keyCode == 65 || e.keyCode == 37) {
                 direccion = 'left';
                 imgPlayer.src = "playerLeft.png";
             }
-            //Derecha ()
+            //Derecha ( 68 / 39 )
             if (e.keyCode == 68 || e.keyCode == 39) {
                 direccion = 'right';
                 imgPlayer.src = "playerRight.png";
             }
-        
-            //PONER BOMBA - Espacio (32)
 
             //PAUSAR - Letra P
             if (e.keyCode == 80 ) {
                 if(pause==false){
                     pause = true;
+                    clearInterval(timer);
                 }else{
                     pause = false;
+                    iniciarTimer();
                 }
             }
 
-            //INICIAR JUEGO - Enter (13)
-            if (e.keyCode == 13 ) {
-                if(iniciar){
-                    iniciar = false;
-                    audioJuego.play();
+            //PONER BOMBA - Espacio (32)
+            if(e.keyCode == 32 && pause == false){
+                if(itemBomba == false && explosion == false){
+                    bomba.x = player.x;
+                    bomba.y = player.y;
+                    itemBomba = true;
+                    audioExplosion.play();
                 }
-                
             }
+
+
+            
         });
-
         
         window.addEventListener('load',run,false);
 
@@ -310,6 +376,17 @@
 
         function getRandomInt(max) {
             return Math.floor(Math.random() * max);
+        }
+
+        function iniciarTimer() {
+            timer = setInterval(cronometrar,1000);
+        }
+        function cronometrar() {
+            segundos++;
+            if(segundos > 59) {
+                minutos++;
+                segundos = 0;
+            }
         }
 
     </script>
