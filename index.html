@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bomberman</title>
+</head>
+
+<body>
+    <canvas id="mycanvas" width="750" height="650" style="border: 1px solid black; ">
+        Hola tu navegador no funciona
+    </canvas>
+    
+    <script>
+        var cv = null;
+        var ctx = null;
+
+        var direccion = null;
+        var score = 0;
+        var speed = 4;
+        var pause = false;
+
+        var player = null;
+
+        var imgPlayer = new Image();
+        var imgPasto = new Image();
+        var imgArbol = new Image();
+        var imgArbusto = new Image();
+
+        //var sound1 = new Audio();
+        var pasto = [];
+        var arbol = [];
+        var arbusto = [];
+        var mapa = [
+            //1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
+            ['1','1','1','1','1','1','1','1','1','1','1','1','1','1','1'], //1
+            ['1','0','0','0','0','0','0','0','0','0','0','0','0','0','1'], //2 
+            ['1','0','1','0','1','0','1','0','1','0','1','0','1','0','1'], //3 - Obstaculos
+            ['1','0','0','0','0','0','0','0','0','0','0','0','0','0','1'], //4 
+            ['1','0','1','0','1','0','1','0','1','0','1','0','1','0','1'], //5 - Obstaculos
+            ['1','0','0','0','0','0','0','0','0','0','0','0','0','0','1'], //6
+            ['1','0','1','0','1','0','1','0','1','0','1','0','1','0','1'], //7 - Obstaculos
+            ['1','0','0','0','0','0','0','0','0','0','0','0','0','0','1'], //8 
+            ['1','0','1','0','1','0','1','0','1','0','1','0','1','0','1'], //9 - Obstaculos
+            ['1','0','0','0','0','0','0','0','0','0','0','0','0','0','1'], //10
+            ['1','0','1','0','1','0','1','0','1','0','1','0','1','0','1'], //11 - Obstaculos
+            ['1','0','0','0','0','0','0','0','0','0','0','0','0','0','1'], //12
+            ['1','1','1','1','1','1','1','1','1','1','1','1','1','1','1']  //13
+        ];
+        console.log(mapa);
+
+        function run(){
+            cv = document.getElementById('mycanvas');
+            ctx = cv.getContext('2d');
+            
+            player = new Cuadro(60,60,28,28,"red");
+
+            for (let i = 0; i < 15; i++) {
+                for (let j = 0; j < 13; j++) {
+                    pasto.push(new Cuadro(i*50, j*50, 50, 50, "green"));
+                    if(mapa[j][i]==1){
+                        arbol.push(new Cuadro(i*50, j*50, 50, 50, "brown"));
+                    }else if(mapa[j][i]==2){
+                        arbusto.push(new Cuadro(i*50, j*50, 50, 50, "lime"));
+                    }
+                } 
+            }
+
+            imgPlayer.src = "playerFront.png";
+            imgPasto.src = "pasto.png";
+            imgArbol.src = "arbol.png";
+            imgArbusto.src = "arbusto.png";
+            
+            paint(); 
+        }
+
+        //PAINT() - DIBUJA TODOS LOS ELEMENTOS EN EL CANVAS
+        function paint() {
+            window.requestAnimationFrame(paint);
+
+            //PINTAR FONDO (PASTO)
+            for (let i = 0; i < pasto.length; i++) {
+                ctx.drawImage(imgPasto,pasto[i].x,pasto[i].y,50,50);
+            }
+
+            //PINTAR PAREDES (ARBOL)
+            for (let i = 0; i < arbol.length; i++) {
+                ctx.drawImage(imgArbol,arbol[i].x,arbol[i].y,50,50);
+            }
+
+            //PINTAR OBSTACULOS (ARBUSTOS)
+            for (let i = 0; i < arbusto.length; i++) {
+                ctx.drawImage(imgArbusto,arbusto[i].x,arbusto[i].y,50,50);
+            }
+
+            //SCORE
+            /*ctx.fillStyle = "black";
+            ctx.fillText("SCORE:"+score,10,20);*/
+             
+            //PINTAR PLAYER
+            ctx.drawImage(imgPlayer,player.x,player.y);
+
+            if(pause){
+                ctx.fillStyle = "rgba(0,0,0,0.3)";
+                ctx.fillRect(0,0,750,650);
+                ctx.fillStyle = "white";
+                ctx.font = "30px Arial";
+                ctx.fillText("J U E G O   P A U S A D O",180,320);
+            }else{
+                update();
+            }
+        }
+
+        function update(){
+            //Arriba
+            if (direccion=='up') {
+                player.y -= speed;
+
+                if(player.y<0){
+                    player.y = 650;
+                }
+            }
+            //Abajo
+            if (direccion=='down') {
+                player.y += speed;
+
+                if(player.y>650){
+                    player.y = 0;
+                }
+            }
+            //Izquierda
+            if (direccion=='left') {
+                player.x -= speed;
+
+                if(player.x<0){
+                    player.x = 750;
+                }
+            }
+            //Derecha
+            if (direccion=='right') {
+                player.x += speed;
+
+                if(player.x>750){
+                    player.x = 0;
+                }
+            }
+
+            //COLISIÓN DEL JUGADOR CON EL OBJETO RANDOM
+            /*if(player.se_tocan(player2)){
+                player2.x = getRandomInt(500);
+                player2.y = getRandomInt(500);
+
+                score+=10;
+                sound1.play();
+            }*/
+            
+            //COLISIÓN DEL JUGADOR CON PAREDES (ARBOLES)
+            for (let i = 0; i < arbol.length; i++) {
+                if(player.se_tocan(arbol[i])){
+                    //Arriba
+                    if (direccion=='up') {
+                        player.y += speed;
+                    }
+                    //Abajo
+                    if (direccion=='down') {
+                        player.y -= speed;
+                    }
+                    //Izquierda
+                    if (direccion=='left') {
+                        player.x += speed;
+                    }
+                    //Derecha
+                    if (direccion=='right') {
+                        player.x -= speed;
+                    }
+                }
+            }
+        }
+
+        //OBJETO CUADRO (HITBOX)
+        function Cuadro(x,y,w,h,c){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.c = c;
+
+            this.se_tocan = function (target) { 
+            if(this.x < target.x + target.w &&
+                this.x + this.w > target.x && 
+                this.y < target.y + target.h && 
+                this.y + this.h > target.y){
+                    return true;
+                    console.log("Hola");
+                }
+            };
+
+            this.pintar = function(ctx){
+                ctx.fillStyle = this.c;
+                ctx.fillRect(this.x,this.y,this.w,this.h);
+                ctx.strokeRect(this.x,this.y,this.w,this.h);
+            }
+        }
+
+        window.requestAnimationFrame = (function () {
+            return window.requestAnimationFrame ||
+                window.webkitRequestAnimationFrame ||
+                window.mozRequestAnimationFrame ||
+                function (callback) {
+                    window.setTimeout(callback, 17);
+                };
+        }());
+
+        //TECLAS PRESIONADAS (MOVIMIENTO JUGADOR Y OTRAS FUNCIONES)
+        document,addEventListener('keydown', function(e){
+            //console.log(e);
+            
+            //Arriba
+            if (e.keyCode == 87 || e.keyCode == 38) {
+                direccion = 'up';
+            }
+            //Abajo
+            if (e.keyCode == 83 || e.keyCode == 40) {
+                direccion = 'down';
+            }
+            //Izquierda
+            if (e.keyCode == 65 || e.keyCode == 37) {
+                direccion = 'left';
+            }
+            //Derecha ()
+            if (e.keyCode == 68 || e.keyCode == 39) {
+                direccion = 'right';
+            }
+        
+            //PONER BOMBA - Espacio (32)
+
+            //PAUSAR - Letra P
+            if (e.keyCode == 80 ) {
+                if(pause==false){
+                    pause = true;
+                }else{
+                    pause = false;
+                }
+            }
+        });
+
+        
+        window.addEventListener('load',run,false);
+
+        function generateRandomColor() {
+            var trans = '0.5';
+            var color = 'rgba(';
+            for (var i = 0; i < 3; i++) {
+                color += Math.floor(Math.random() * 255) + ',';
+            }
+            color += trans + ')';
+            return color;
+        }
+
+        function getRandomInt(max) {
+            return Math.floor(Math.random() * max);
+        }
+
+    </script>
+</body>
+</html>
